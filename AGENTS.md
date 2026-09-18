@@ -5,6 +5,10 @@ page at https://htn.dryft.ai/docs, or the included
 `QWEN_ENGINE_CONTRACT.md`.
 This file is the part you must not get wrong.
 
+Then read `OPTIMIZATION_GUIDE.md` before replacing model operations. It maps
+the pinned Transformers 4.51.3 implementation to the exact Qwen3 dimensions,
+tensor shapes, execution graph, cache semantics, and module boundaries.
+
 ## Invariants
 
 Break one of these and the run fails outright; no amount of speed compensates.
@@ -59,9 +63,10 @@ Use public runs to measure improvements. Hidden workloads determine the official
 score, so avoid assumptions about their shapes.
 
 Each workload gets a fresh process: load, one warmup generation of the same
-shape, then the samples. Loading is untimed, inside the 300-second budget, so
-anything that does not depend on the prompt belongs in `__init__` — weight
-relayout, CUDA graph capture, autotuning, warmup.
+shape, then the samples. Loading and warmup share a 300-second budget and are
+untimed. Load and relayout weights in `__init__`; allocate shape-dependent
+buffers, autotune, and capture graphs during warmup, when shapes are known.
+Reset cache state for each subsequent `generate` call.
 
 ## Where the wins are
 

@@ -45,12 +45,29 @@ capture CUDA graphs, precompute anything that does not depend on prompts,
 and warm up. Loading plus one warmup generation must finish within 300
 seconds and the engine must stay under 90% of the GPU's memory.
 
-The downloadable starter's `engine.py` is native Qwen: it loads the model
+The starter repository's `engine/engine.py` is native Qwen: it loads the model
 with Transformers and runs a plain greedy loop with a KV cache. Submitted
-unchanged, it scores 100. Everything faster than that is yours to find: KV
+unchanged, it gives you a starting throughput measurement. Improve it with KV
 cache layout and paging, CUDA graphs for decode steps, fused kernels, chunked
 or overlapped prefill, speculative decoding with exact verification, or
 custom Triton for any block. What you may not change is the answer.
+
+## Integrating custom kernels
+
+The platform imports `engine.Engine`, constructs it with `model_path`, and
+calls `generate` for warmup and measured samples. Your engine imports and
+launches its kernels; the platform does not discover kernel files, register
+operation replacements, or supply a kernel-level calling convention.
+
+You may replace individual Transformers modules, use fused Triton kernels,
+or implement an entire decode step as a megakernel. The same source-only
+runtime, output stream, correctness rule, and resource gates apply.
+Your engine owns tensor layouts, buffers, cache updates, synchronization,
+and conversion to the token lists it yields.
+
+See the [implementation guide](OPTIMIZATION_GUIDE.md#how-the-platform-reaches-your-kernels)
+for the loading sequence, source format, operation-to-kernel mapping,
+wrapper interfaces, and megakernel constraints.
 
 ## What is measured
 
@@ -80,10 +97,10 @@ per-step overhead of the protocol is paid equally by both sides.
 
 Per workload the report carries the median of your samples, their spread,
 time to first token, time per output token, tokens per second, and peak GPU
-memory. The score is 100 times the geometric mean over the hidden workloads
-of native time divided by your time: 100 is native, 150 is one and a half
-times faster on the hidden shapes. Public workloads are shown to you and
-never scored.
+memory. The score is the geometric mean of output tokens per second across
+the three hidden workloads, with equal weight for each. Higher is faster.
+Throughput includes prefill: `batch × output tokens / median generation seconds`.
+Native timings set latency gates, not the score. Public workloads never rank.
 
 ## The quality rule
 

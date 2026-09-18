@@ -6,9 +6,11 @@ Decode `Qwen/Qwen3-4B-Instruct-2507` at revision
 `engine/engine.py` is the baseline: Transformers, BF16, greedy decode with a KV
 cache.
 
-Read the [Docs](https://dryft-user-testing.vercel.app/docs) before you optimize
+Read the [Docs](https://htn.dryft.ai/docs) before you optimize
 (workloads, timing, output rule, scoring). `QWEN_ENGINE_CONTRACT.md` is the same
-guide for offline use.
+guide for offline use. Then read `OPTIMIZATION_GUIDE.md` for the pinned model
+architecture, tensor shapes, execution graph, and staged examples of replacing
+Transformers operations.
 
 ## Get started
 
@@ -16,7 +18,7 @@ guide for offline use.
 2. Clone the new repository.
 3. [Sign in to Dryft](https://htn.dryft.ai/) with GitHub.
    Create a team, or join one with a six-character invite code
-4. [Submissions](https://dryft-user-testing.vercel.app/bench), select
+4. [Submissions](https://htn.dryft.ai/bench), select
    **Connect a repository**, grant the GitHub App access, and set
    **Engine folder** to `engine`.
 5. Push to the default branch, or use **Run now** in
@@ -39,6 +41,7 @@ again. For CLI submissions, see [Submitting](#submitting).
 | `bin/` | no | Installed Dryft CLI. |
 | `requirements.txt` | no | Container versions, for a local GPU. |
 | `AGENTS.md` | no | Contract as rules, for a coding agent. |
+| `OPTIMIZATION_GUIDE.md` | no | Architecture, tensor shapes, and replacement map. |
 
 Only `engine/` is submitted. Keep the agent, notes, and credentials outside it.
 
@@ -77,7 +80,7 @@ and puts it in `bin/`:
 # .\install-dryft.ps1
 ```
 
-Create a token under [API tokens](https://dryft-user-testing.vercel.app/tokens),
+Create a token under [API tokens](https://htn.dryft.ai/tokens),
 then:
 
 ```sh

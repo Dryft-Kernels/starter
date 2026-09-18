@@ -1,7 +1,7 @@
 """Native Qwen3 4B engine: the starter, and a complete submission as it is.
 
 Loads the pinned checkpoint with Transformers and decodes greedily with a KV
-cache. Submitted unchanged it scores 100. Everything faster is yours to find:
+cache. Submit unchanged to measure starting throughput, then improve it:
 cache layout, CUDA graphs, fused kernels, chunked prefill, speculative decoding
 with exact verification. What you may not change is the answer: every token
 must be the one native Qwen picks, judged by a teacher-forced replay.
