@@ -82,23 +82,6 @@ class Dryft:
             raise RuntimeError("the platform has no published benchmark")
         return items[0]
 
-    def submit(self, archive: bytes) -> str:
-        """Upload an archive. Returns its submission id."""
-        boundary = f"----dryft{uuid.uuid4().hex}"
-        body = b"".join([
-            f"--{boundary}\r\n".encode(),
-            b'Content-Disposition: form-data; name="archive"; '
-            b'filename="submission.tar.gz"\r\n',
-            b"Content-Type: application/gzip\r\n\r\n",
-            archive,
-            f"\r\n--{boundary}--\r\n".encode(),
-        ])
-        result = self._send(
-            "POST", "/api/v1/submissions", body=body,
-            content_type=f"multipart/form-data; boundary={boundary}",
-        )
-        return result["submission"]["id"]
-
     def start_run(self, submission_id: str, mode: str = "public",
                   idempotency_key: str | None = None) -> dict:
         """Start a run. Reuse the same key to replay rather than duplicate one."""

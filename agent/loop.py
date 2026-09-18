@@ -1,7 +1,7 @@
-"""One turn of the autoresearch loop: package, submit, run, read the result.
+"""Evaluate an existing submission and read the result. Push code to GitHub first.
 
-    python agent/loop.py                  # public samples, about two minutes
-    python agent/loop.py --mode official  # five samples, scored, ranked
+    python agent/loop.py SUBMISSION_ID                  # public samples, about two minutes
+    python agent/loop.py SUBMISSION_ID --mode official  # five samples, scored, ranked
 
 This is the outer cycle only. The part that decides *what to change* about
 ``engine/engine.py`` is yours, and is the whole exercise; see `plan_next_edit`
@@ -17,17 +17,12 @@ answer: a poll that times out has not cancelled anything.
 
 import argparse
 import sys
-from pathlib import Path
 
 from client import ApiError, Dryft
-from package import package
 
 #: Time to first token and time per output token may not exceed this multiple
 #: of native's. Official runs enforce it; public runs only report the ratios.
 LATENCY_GATE = 1.10
-
-ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
-
 
 def report(detail: dict) -> bool:
     """Print what the run measured. Returns True if it passed everything."""
@@ -72,11 +67,7 @@ def report(detail: dict) -> bool:
     )
 
 
-def attempt(client: Dryft, engine_dir: Path, mode: str, timeout: float) -> bool:
-    archive = package(engine_dir)
-    print(f"packaged {engine_dir} -> {len(archive)} bytes")
-
-    submission_id = client.submit(archive)
+def attempt(client: Dryft, submission_id: str, mode: str, timeout: float) -> bool:
     started = client.start_run(submission_id, mode=mode)
     run_id = started["id"]
     print(f"submission {submission_id}, {mode} run {run_id}; waiting")
@@ -86,8 +77,7 @@ def attempt(client: Dryft, engine_dir: Path, mode: str, timeout: float) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--engine", type=Path, default=ENGINE_DIR,
-                        help="the folder whose contents are submitted")
+    parser.add_argument("submission_id", help="existing submission ID from the website")
     parser.add_argument("--mode", choices=("public", "official"), default="public",
                         help="public samples are feedback; official runs rank")
     parser.add_argument("--timeout", type=float, default=3000,
@@ -96,9 +86,9 @@ def main() -> int:
 
     try:
         client = Dryft()
-        passed = attempt(client, arguments.engine, arguments.mode, arguments.timeout)
+        passed = attempt(client, arguments.submission_id, arguments.mode, arguments.timeout)
     except ValueError as problem:
-        print(f"the archive was refused before upload: {problem}", file=sys.stderr)
+        print(f"invalid argument: {problem}", file=sys.stderr)
         return 1
     except ApiError as problem:
         print(f"the API refused the request: {problem}", file=sys.stderr)
