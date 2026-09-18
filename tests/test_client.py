@@ -9,14 +9,13 @@ spec.loader.exec_module(client)
 
 
 class ClientTests(unittest.TestCase):
-    def test_submission_to_terminal_run_uses_api_envelopes(self):
+    def test_existing_submission_to_terminal_run_uses_api_envelopes(self):
         api = client.Dryft('https://example.test', 'test-token')
         with patch.object(api, '_send', side_effect=[
-            {'submission': {'id': 'submission-1'}},
             {'run': {'id': 'run-1', 'state': 'queued'}, 'replayed': False},
             {'run': {'id': 'run-1', 'state': 'succeeded', 'result': {'score': 100}}},
         ]):
-            submission = api.submit(b'archive')
+            submission = 'submission-1'
             run = api.start_run(submission)
             result = api.wait(run['id'], timeout=1)
         self.assertEqual(submission, 'submission-1')

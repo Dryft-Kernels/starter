@@ -111,7 +111,7 @@ explains why the obvious version does not.
 ## Workflow
 
 1. Change `engine/engine.py`, or add a module beside it.
-2. Package and submit a **public** run. It is one sample per workload, about
+2. Commit and push to the connected repository’s default branch with **public** evaluation selected. It is one sample per workload, about
    two minutes, and it never touches the leaderboard.
 3. Read the per-workload report: tokens per second, TTFT, TPOT, peak memory,
    and the native ratios. A public run reports the latency ratios instead of
@@ -120,7 +120,7 @@ explains why the obvious version does not.
    **official** run: five samples per workload, the hidden shapes scored, the
    spread gate live.
 
-`agent/loop.py` is that cycle in code. Keep a record of what each edit did to
+`agent/loop.py SUBMISSION_ID` evaluates an existing submission. Push each code change first. Keep a record of what each edit did to
 each workload; the hidden scores are the only ones that count, and they move
 for reasons the public three will not always show you.
 

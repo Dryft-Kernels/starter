@@ -92,19 +92,25 @@ It downloads the public CLI, checks it, and puts it in `bin/`:
 # .\install-dryft.ps1
 ```
 
-Create a token under [API tokens](https://dryft-user-testing.vercel.app/tokens), then check the connection and submit:
+Connect this repository in Dryft, set its engine folder to `engine`, and enable
+**Auto-run on push**. New submissions come only from default-branch pushes.
+Create a token under [API tokens](https://dryft-user-testing.vercel.app/tokens)
+to inspect results or rerun an existing submission:
 
 ```sh
 export DRYFT_TOKEN='dryft_pat_...'
 
 ./bin/dryft doctor
 ./bin/dryft validate engine
-./bin/dryft submit engine
-./bin/dryft run <submission-id> --mode public --wait 3000
+git add engine
+git commit -m "Update engine"
+git push origin HEAD
 ```
 
-`submit` prints the submission ID needed by `run`. The CLI already knows the
-event server, so most people only need `DRYFT_TOKEN`.
+The push starts the evaluation selected in **Evaluation on push**. Copy an
+existing submission ID from the website to rerun it with
+`./bin/dryft run <submission-id> --mode public --wait 3000`. The CLI already
+knows the event server, so most people only need `DRYFT_TOKEN`.
 
 Useful follow-up commands:
 
@@ -126,10 +132,10 @@ cd engine && tar -czf ../submission.tar.gz engine.py kernels
 ```
 
 Name the files explicitly. `tar -C engine .` writes paths such as
-`./engine.py`, which the platform rejects. Use `agent/loop.py` to automate the
-full submit-and-run cycle.
+`./engine.py`, which the platform rejects. Use `python agent/loop.py SUBMISSION_ID` to evaluate an existing submission;
+push a new commit whenever the engine changes.
 
-You can also connect this repository in Dryft and set its engine folder to
+Connect this repository in Dryft and set its engine folder to
 `engine`. Each default-branch push can run the public samples automatically.
 Public runs are for feedback; official runs can update the leaderboard.
 
