@@ -1,0 +1,49 @@
+# Hotpath on the real Dryft engine (Qwen3-4B, H100 workstation). Copy to ~/hotpath/configs/.
+#   hotpath run configs/dryft_qwen.yaml
+#   hotpath export configs/dryft_qwen.yaml ~/hotpath_export --ablate
+# Disposable Baseten workstation only: execution is local (no container).
+
+name: dryft_qwen
+target: /home/baseten/dryft          # adjusted by scripts at copy time if $HOME differs
+
+test_cmd: ~/dryft-venv/bin/python localjudge/judge.py --quick
+bench_cmd: ~/dryft-venv/bin/python localjudge/bench.py --samples 5
+profile_cmd: ~/dryft-venv/bin/python localjudge/profile_step.py --shape 1x512x32
+
+editable: ["engine/engine.py", "engine/kernels/*.py"]
+locked: ["localjudge/*", "localjudge/native_engine/*", "scripts/*"]
+correctness_contract: >-
+  Every emitted token must be native Qwen3-4B's greedy argmax under teacher-forced replay of our own
+  prefix, or within 2.0 logits of it (localjudge/judge.py). No quantization, cache eviction,
+  approximate/sparse attention or unverified drafts. BF16 rounding points must match
+  transformers 4.51.3 modeling_qwen3 exactly: reorder reductions only. generate() yields exactly
+  max_new_tokens lists of B python ints, never stops at EOS, resets state per call.
+
+execution: {backend: local}
+
+timeouts: {test: 1500, bench: 2400, profile: 600, model: 240}
+benchmark: {min_speedup: 1.02, noise_multiplier: 2.0, baseline_repeats: 5, exclusive: true,
+            rebenchmark_parent: true, min_workload_retention: 0.98,
+            required_workloads: [1x512x32, 4x2048x32, 16x512x128, 1x2048x128, 8x256x256, 32x512x64]}
+
+search: {iterations: 4, candidates_per_iteration: 3, max_parallel_tests: 1, max_parallel_workers: 4,
+         max_parallel_benchmarks: 1, beam_width: 2, max_patch_retries: 1}
+
+strategies:
+  - "gpu: fused RMSNorm + GEMV Triton kernel for decode (B<=32): each program recomputes the row RMS (fp32, cast BF16 before weight multiply) and streams its weight tile; input_layernorm+W_qkv"
+  - "gpu: fused post_attention_layernorm + W_gateup GEMV with SwiGLU epilogue (silu -> BF16, * up -> BF16)"
+  - "gpu: o_proj / down_proj GEMV with BF16 residual-add epilogue (residual + BF16(result), rounded once, as the reference)"
+  - "gpu: final RMSNorm + LM head + argmax fused: vocab-tile partial (max, lowest idx) then global reduce"
+  - "gpu: tune decode attention BLOCK_N / num_warps / num_stages / split count in engine/kernels/decode_attn.py"
+  - "gpu: tune Triton GEMV BLOCK sizes, num_warps, num_stages, split-K for B in {1,4,16,32}"
+  - "gpu: prefill: skip o_proj/MLP for all but the last position in the final layer"
+  - "gpu: exact speculative decoding with prompt-lookup n-gram drafts, verified in one T=k+1 forward (per-sequence acceptance)"
+
+provider:
+  planner: openai
+  planner_model: gpt-4.1
+  worker: openai
+  worker_model: moonshotai/Kimi-K2.7-Code
+  worker_base_url: https://inference.baseten.co/v1
+  worker_api_key_env: BASETEN_API_KEY
+  planner_api_key_env: OPENAI_API_KEY
