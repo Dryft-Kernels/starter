@@ -7,3 +7,7 @@ __pycache__/
 !.env.example
 *.tar.gz
 .DS_Store
+WORKSTATION.md
+bin/
+ref_src/
+*.log
